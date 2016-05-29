@@ -1,0 +1,35 @@
+#!/usr/bin/env python3.5
+
+from FiftyFiveBarScraper import FiftyFiveBarScraper
+from multiprocessing import Process
+import glob
+import logging
+import os
+import subprocess
+import sys
+
+all_scrapers = glob.glob("*Scraper.py")
+LOG_DIRECTORY = "log"
+
+def main():
+  if not os.path.exists(LOG_DIRECTORY):
+    os.mkdir(LOG_DIRECTORY)
+  procs = [Process(target=runspider, args=(scraper,))
+           for scraper in all_scrapers
+           if scraper != "JazzScraper.py"]
+  [p.start() for p in procs]
+  [p.join() for p in procs]
+  # Detect errors?
+  return
+
+def runspider(name):
+  cmd = " ".join(("scrapy"
+                 ,"runspider"
+                 ,"--logfile=%s/%s.log" % (LOG_DIRECTORY, name)
+                 ,name))
+  raw_output = subprocess.check_output(cmd, shell=True)
+  logging.info(str(raw_output, encoding="utf-8"))
+  return
+
+if __name__ == "__main__":
+  main()
