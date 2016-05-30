@@ -8,6 +8,9 @@ import scrapy
 import unittest
 
 class FiftyFiveBarScraper(JazzScraper):
+  """
+    Scraper for 55bar.com
+  """
 
   name = "FiftyFiveBar"
 
@@ -30,6 +33,9 @@ class FiftyFiveBarScraper(JazzScraper):
     JazzScraper.__init__(self, start_urls)
 
   def items_of_response(self, response):
+    """
+      Parse a list of `JazzItem` from a search results page
+    """
     ths = self.table_headers_of_response(response)
     items = []
     for i in range(0, len(ths), 2):
@@ -48,6 +54,10 @@ class FiftyFiveBarScraper(JazzScraper):
     return items
 
   def parse(self, response):
+    """
+      Parse the current page.
+      Optionally send a request for the next page.
+    """
     items = self.items_of_response(response)
     if items:
       yield from items
@@ -56,6 +66,10 @@ class FiftyFiveBarScraper(JazzScraper):
         yield scrapy.Request(self.url_of_datetime(latest_date), callback=self.parse)
 
   def parse_artist(self, artist_sel):
+    """
+      Parse the artist name from a selector.
+      Just returns a raw string --- no pretty formatting
+    """
     artist_str = None
     try:
       artist_str = util.extract_text(artist_sel.xpath(".//text()"))
@@ -64,6 +78,10 @@ class FiftyFiveBarScraper(JazzScraper):
     return artist_str
 
   def parse_date(self, date_sel):
+    """
+      Parse the date of a performance.
+      Returns a string in MONTH/DAY/YEAR format
+    """
     date_str = None
     try:
       date_str = date_sel.xpath("./script/text()").extract()[0].split(";", 1)[0]
@@ -73,6 +91,10 @@ class FiftyFiveBarScraper(JazzScraper):
     return date_str
 
   def parse_time(self, date_sel):
+    """
+      Parse the time of a performance.
+      Returns a string like `12pm`
+    """
     time_str = None
     try:
       time_str = date_sel.xpath(".//font/text()").extract()[0].split(" - ", 1)[-1]
@@ -81,9 +103,17 @@ class FiftyFiveBarScraper(JazzScraper):
     return time_str
 
   def table_headers_of_response(self, response):
+    """
+      Split a response object into a (paired) list of objects.
+      - Even-numbered elements of the result tell about showtimes.
+      - Odd-numbered elements tell about artists.
+    """
     return response.xpath("//th[@scope='row']")
 
   def url_of_datetime(self, dt):
+    """
+      Get a 55bar search results url starting at the given date
+    """
     return self.SEARCH_URL + "&GigDate=%3E%3D" + util.mdy_of_datetime(dt)
 
 

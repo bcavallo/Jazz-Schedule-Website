@@ -17,13 +17,22 @@ JSON_DIRECTORY = "json"
 LOG_DIRECTORY = "log"
 
 def ensure_dir(path):
+  """
+    Create a directory, if it does not already exist
+  """
   if not os.path.exists(path):
     os.mkdir(path)
 
 def exec_command(cmd):
+  """
+    Run a shell command, pipe the output to a string
+  """
   return str_of_bytes(subprocess.check_output(cmd, shell=True))
 
 def main():
+  """
+    Run all Jazz scrapers
+  """
   ensure_dir(JSON_DIRECTORY)
   ensure_dir(LOG_DIRECTORY)
   procs = [Process(target=runspider, args=(scraper,))
@@ -35,6 +44,10 @@ def main():
   return
 
 def runspider(name):
+  """
+    Run a single Jazz scraper.
+    Sets up the proper commandline options for Scrapy
+  """
   output = exec_command(" ".join(("scrapy"
                                  ,"runspider"
                                  ,"-t json"
@@ -45,9 +58,15 @@ def runspider(name):
   return
 
 def str_of_bytes(raw):
+  """
+    Convert raw bytes returned from a subprocess to a string
+  """
   return str(raw, encoding="utf-8")
 
 def test():
+  """
+    Run unit tests for all Python files in the current directory
+  """
   try:
     output = exec_command(" ".join(("python3.5"
                                    ,"-m unittest"
@@ -58,6 +77,8 @@ def test():
   except subprocess.CalledProcessError as cpe:
     return False
 
+
+## -----------------------------------------------------------------------------
 if __name__ == "__main__":
   if test():
     if len(sys.argv) == 1:
