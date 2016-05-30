@@ -1,5 +1,9 @@
 #!/usr/bin/env python3.5
 
+"""
+  Script to invoke all scrapers and run unit tests
+"""
+
 from FiftyFiveBarScraper import FiftyFiveBarScraper
 from multiprocessing import Process
 import glob
@@ -10,6 +14,9 @@ import sys
 
 all_scrapers = glob.glob("*Scraper.py")
 LOG_DIRECTORY = "log"
+
+def exec_command(cmd):
+  return str_of_bytes(subprocess.check_output(cmd, shell=True))
 
 def main():
   if not os.path.exists(LOG_DIRECTORY):
@@ -23,13 +30,30 @@ def main():
   return
 
 def runspider(name):
-  cmd = " ".join(("scrapy"
-                 ,"runspider"
-                 ,"--logfile=%s/%s.log" % (LOG_DIRECTORY, name)
-                 ,name))
-  raw_output = subprocess.check_output(cmd, shell=True)
-  logging.info(str(raw_output, encoding="utf-8"))
+  output = exec_command(" ".join(("scrapy"
+                                 ,"runspider"
+                                 ,"--logfile=%s/%s.log" % (LOG_DIRECTORY, name)
+                                 ,name)))
+  logging.info(output)
   return
 
+def str_of_bytes(raw):
+  return str(raw, encoding="utf-8")
+
+def test():
+  try:
+    output = exec_command(" ".join(("python3.5"
+                                   ,"-m unittest"
+                                   ,"-v"
+                                   ," ".join(glob.glob("*.py")))))
+    logging.info(output)
+    return True
+  except subprocess.CalledProcessError as cpe:
+    return False
+
 if __name__ == "__main__":
-  main()
+  if test():
+    if len(sys.argv) == 1:
+      main()
+  else:
+    print("Detected unit test failures, refusing to invoke scrapers")

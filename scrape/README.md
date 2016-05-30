@@ -1,6 +1,10 @@
 scrape
 ===
 
+TODO
+---
+https://www.smallslive.com/events/calendar/
+https://www.mezzrow.com/
 
 
 Requirements

@@ -1,9 +1,11 @@
-import re
+from JazzItem import JazzItem
+from JazzScraper import JazzScraper, DEFAULT_TIMEDELTA
 import datetime
 import logging
+import re
 import scrape_util as util
-from JazzScraper import JazzScraper, DEFAULT_TIMEDELTA
-from JazzItem import JazzItem
+import scrapy
+import unittest
 
 class FiftyFiveBarScraper(JazzScraper):
 
@@ -28,7 +30,7 @@ class FiftyFiveBarScraper(JazzScraper):
     JazzScraper.__init__(self, start_urls)
 
   def items_of_response(self, response):
-    ths = response.xpath("//th[@scope='row']")
+    ths = self.table_headers_of_response(response)
     items = []
     for i in range(0, len(ths), 2):
       date_sel = ths[i]
@@ -78,6 +80,93 @@ class FiftyFiveBarScraper(JazzScraper):
       self.logger.error("Error parsing showtime from selector '%s'" % date_sel.extract())
     return time_str
 
+  def table_headers_of_response(self, response):
+    return response.xpath("//th[@scope='row']")
+
   def url_of_datetime(self, dt):
     return self.SEARCH_URL + "&GigDate=%3E%3D" + util.mdy_of_datetime(dt)
+
+
+## -----------------------------------------------------------------------------
+class FiftyFiveBarScraperTest(unittest.TestCase):
+
+  def setUp(self):
+    self.scraper = FiftyFiveBarScraper()
+    self.sample_url = "http://55bar.com"
+    self.response = util.response_of_file("test/FiftyFiveBar.html", self.sample_url)
+    ths = self.scraper.table_headers_of_response(self.response)
+    self.date_sel = ths[0]
+    self.artist_sel = ths[1]
+
+  def test_start_date(self):
+    """
+      `start_date` should be defined after `__init__`
+    """
+    self.assertIsNotNone(self.scraper.start_date)
+
+  def test_end_date(self):
+    """
+      `end_date` should be defined and later in time than `start_date`
+    """
+    self.assertIsNotNone(self.scraper.end_date)
+    self.assertLess(self.scraper.start_date, self.scraper.end_date)
+
+  def test_start_urls(self):
+    """
+      `start_urls` should be defined an non-empty and all target 55bar
+    """
+    self.assertIsNotNone(self.scraper.start_urls)
+    self.assertGreater(len(self.scraper.start_urls), 0)
+    for url in self.scraper.start_urls:
+      self.assertTrue(url.startswith(self.scraper.SEARCH_URL))
+
+  def test_items_of_response(self):
+    """
+    """
+    items = self.scraper.items_of_response(self.response)
+    self.assertEqual(len(items), 62)
+    i0 = items[0]
+    i9 = items[9]
+    for item in [i0, i9]:
+      self.assertEqual(item['venue'], "FiftyFiveBar")
+      self.assertEqual(item['date'].year, 2015)
+    self.assertTrue(i0['artist'].startswith("Hope Debates"))
+    self.assertTrue(i9['artist'].startswith("Mike Stern"))
+
+  def test_parse(self):
+    """
+      Run `parse` on an example webpage
+    """
+    self.scraper.end_date = datetime.datetime(year=1800, month=11, day=2)
+    items = list(self.scraper.parse(self.response))
+    self.assertEqual(len(items), 62)
+    for item in items:
+      self.assertTrue(isinstance(item, JazzItem))
+
+  #def test_parse_end2end(self):
+  #  """
+  #    Run `parse` on a new webpage; this should run without errors
+  #  """
+  #  # TODO
+  #  pass
+
+  def test_parse_artist(self):
+    expected = "Hope Debates Hope Debates(Voice), Brad Shepik(Guitar), Scott Colberg(Bass), Jon Graboff(Pedal Steel), Diego Voglino(Drums)"
+    self.assertEqual(self.scraper.parse_artist(self.artist_sel), expected)
+
+  def test_parse_date(self):
+    self.assertEqual(self.scraper.parse_date(self.date_sel), "10/17/15")
+
+  def test_parse_time(self):
+    self.assertEqual(self.scraper.parse_time(self.date_sel), "6pm")
+
+  def test_url_of_datetime(self):
+    year = 2005
+    month = 12
+    day = 1
+    dt = datetime.datetime(year=year, month=month, day=day)
+    url = self.scraper.url_of_datetime(dt)
+    self.assertIsNotNone(url)
+    self.assertTrue(url.startswith(self.scraper.SEARCH_URL))
+    self.assertTrue(url.endswith(util.mdy_of_datetime(dt)))
 
