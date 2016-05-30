@@ -114,8 +114,3 @@ class TestScrapeUtil(unittest.TestCase):
     self.assertTrue(isinstance(r, scrapy.http.Response))
     self.assertEqual(self.sample_url, r.url)
 
-
-## -----------------------------------------------------------------------------
-
-if __name__ == "__main__":
-  unittest.main()
