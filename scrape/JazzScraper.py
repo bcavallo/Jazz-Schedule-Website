@@ -10,9 +10,8 @@ class JazzScraper(scrapy.Spider):
     Parent class for Jazz site scrapers
   """
 
-  name = None # Every Scrapy spider needs a name
-
   download_delay = 0.5 # seconds, time to wait between Requests
+  name = None # Every Scrapy spider needs a name
 
   def __init__(self, start_urls):
     """

@@ -13,14 +13,19 @@ import subprocess
 import sys
 
 all_scrapers = glob.glob("*Scraper.py")
+JSON_DIRECTORY = "json"
 LOG_DIRECTORY = "log"
+
+def ensure_dir(path):
+  if not os.path.exists(path):
+    os.mkdir(path)
 
 def exec_command(cmd):
   return str_of_bytes(subprocess.check_output(cmd, shell=True))
 
 def main():
-  if not os.path.exists(LOG_DIRECTORY):
-    os.mkdir(LOG_DIRECTORY)
+  ensure_dir(JSON_DIRECTORY)
+  ensure_dir(LOG_DIRECTORY)
   procs = [Process(target=runspider, args=(scraper,))
            for scraper in all_scrapers
            if scraper != "JazzScraper.py"]
@@ -32,6 +37,8 @@ def main():
 def runspider(name):
   output = exec_command(" ".join(("scrapy"
                                  ,"runspider"
+                                 ,"-t json"
+                                 ,"-o %s/%s.json" % (JSON_DIRECTORY, name)
                                  ,"--logfile=%s/%s.log" % (LOG_DIRECTORY, name)
                                  ,name)))
   logging.info(output)
@@ -54,6 +61,8 @@ def test():
 if __name__ == "__main__":
   if test():
     if len(sys.argv) == 1:
+      print("Running spiders ...")
       main()
   else:
     print("Detected unit test failures, refusing to invoke scrapers")
+
