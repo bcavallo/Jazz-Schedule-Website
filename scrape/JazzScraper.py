@@ -31,7 +31,7 @@ class JazzScraper(scrapy.Spider):
 
 
 ## -----------------------------------------------------------------------------
-class FiftyFiveBarScraperTest(unittest.TestCase):
+class JazzScraperTest(unittest.TestCase):
   def setUp(self):
     self.scraper = JazzScraper([])
 
