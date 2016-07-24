@@ -1,0 +1,89 @@
+#!/usr/bin/env python3.5
+
+"""
+  Script to invoke all scrapers and run unit tests
+"""
+
+from FiftyFiveBarScraper import FiftyFiveBarScraper
+from multiprocessing import Process
+import glob
+import logging
+import os
+import subprocess
+import sys
+
+all_scrapers = glob.glob("*Scraper.py")
+JSON_DIRECTORY = "json"
+LOG_DIRECTORY = "log"
+
+def ensure_dir(path):
+  """
+    Create a directory, if it does not already exist
+  """
+  if not os.path.exists(path):
+    os.mkdir(path)
+
+def exec_command(cmd):
+  """
+    Run a shell command, pipe the output to a string
+  """
+  return str_of_bytes(subprocess.check_output(cmd, shell=True))
+
+def main():
+  """
+    Run all Jazz scrapers
+  """
+  ensure_dir(JSON_DIRECTORY)
+  ensure_dir(LOG_DIRECTORY)
+  procs = [Process(target=runspider, args=(scraper,))
+           for scraper in all_scrapers
+           if scraper != "JazzScraper.py"]
+  [p.start() for p in procs]
+  [p.join() for p in procs]
+  # Detect errors?
+  return
+
+def runspider(name):
+  """
+    Run a single Jazz scraper.
+    Sets up the proper commandline options for Scrapy
+  """
+  output = exec_command(" ".join(("scrapy"
+                                 ,"runspider"
+                                 ,"-t json"
+                                 ,"-o %s/%s.json" % (JSON_DIRECTORY, name)
+                                 ,"--logfile=%s/%s.log" % (LOG_DIRECTORY, name)
+                                 ,name)))
+  logging.info(output)
+  return
+
+def str_of_bytes(raw):
+  """
+    Convert raw bytes returned from a subprocess to a string
+  """
+  return str(raw, encoding="utf-8")
+
+def test():
+  """
+    Run unit tests for all Python files in the current directory
+  """
+  try:
+    output = exec_command(" ".join(("python3.5"
+                                   ,"-m unittest"
+                                   ,"-v"
+                                   ," ".join(glob.glob("*.py")))))
+    logging.info(output)
+    return True
+  except subprocess.CalledProcessError as cpe:
+    return False
+
+
+## -----------------------------------------------------------------------------
+if __name__ == "__main__":
+  if test():
+    if len(sys.argv) == 1:
+      print("Running spiders ...")
+      main()
+  else:
+    print("Detected unit test failures, refusing to invoke scrapers")
+
